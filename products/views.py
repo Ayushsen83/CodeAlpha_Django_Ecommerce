@@ -68,22 +68,22 @@ def user_logout(request):
     logout(request)
     return redirect('home')
 
-
+@login_required
 # ---------------- CART ----------------
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
-    cart_item, created = Cart.objects.get_or_create(product=product)
-
-    if not created:
-        cart_item.quantity += 1
-        cart_item.save()
+    cart_item, created = Cart.objects.get_or_create(
+    user=request.user,
+    product=product,
+    defaults={'quantity': 1}
+)
 
     return redirect('cart')
 
-
+@login_required
 def cart(request):
-    cart_items = Cart.objects.all()
+    cart_items = Cart.objects.filter(user=request.user)
 
     total = sum(item.product.price * item.quantity for item in cart_items)
 
@@ -92,14 +92,14 @@ def cart(request):
         'total': total
     })
 
-
+@login_required
 def increase_quantity(request, cart_id):
     cart_item = get_object_or_404(Cart, id=cart_id)
     cart_item.quantity += 1
     cart_item.save()
     return redirect('cart')
 
-
+@login_required
 def decrease_quantity(request, cart_id):
     cart_item = get_object_or_404(Cart, id=cart_id)
 
@@ -112,6 +112,7 @@ def decrease_quantity(request, cart_id):
     return redirect('cart')
 
 
+@login_required
 def remove_cart(request, cart_id):
     cart_item = get_object_or_404(Cart, id=cart_id)
     cart_item.delete()
@@ -121,7 +122,7 @@ def remove_cart(request, cart_id):
 # ---------------- CHECKOUT ----------------
 @login_required
 def checkout(request):
-    cart_items = Cart.objects.all()
+    cart_items = Cart.objects.filter(user=request.user)
 
     total = sum(item.product.price * item.quantity for item in cart_items)
 
@@ -136,7 +137,7 @@ def checkout(request):
                 total=item.product.price * item.quantity
             )
 
-        Cart.objects.all().delete()
+        Cart.objects.filter(user=request.user).delete()
 
         return render(request, "success.html")
 
